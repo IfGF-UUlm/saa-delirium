@@ -1,0 +1,39 @@
+{
+    "Estimated Cut-to-Suture Time (minutes)": "cut_to_suture",
+    "Age (months)": "get_age",
+    "GFR (Cockcroft-Gault, ml/min)": "egfr_latest",
+    "ASA Class (score)": {
+        "comorbidity_1_asa": {
+            "0": 1,
+            "1": 2,
+            "2": 3,
+            "3": 4,
+            "4": 5,
+            "99": null
+        }
+    },
+    "MoCA Orientation (subscore)": "get_moca_orientation",
+    "MoCA Memory (subscore)": "get_moca_memory",
+    "Number of Medications (n)": "get_number_of_medications",
+    "Multimorbidity (score)": "get_cci",
+    "Clinical Frailty Scale (score)": "cfs_prior",
+    "MoCA Verbal Fluency (subscore)": "get_moca_verbal_fluency",
+    "Dementia (Yes/No)": "get_dementia",
+    "Recent Fall (Yes/No)": {
+        "falls_1": {
+            "0": 0,
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "99": null,
+            "100": null
+        }
+    },
+    "Post-OP Isolation (Yes/No)": "get_isolation",
+    "Pre-OP Benzodiazepines (Yes/No)": "get_benzodiazepine",
+    "Cardio-Pulmonary Bypass (Yes/No)": {
+        "cp_bypass": {
+            "99": 0
+        }
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "Estimated Cut-to-Suture Time (minutes)": [],
+  "Age (months)": [],
+  "GFR (Cockcroft-Gault, ml/min)": [],
+  "ASA Class (score)": [],
+  "MoCA Orientation (subscore)": [],
+  "MoCA Memory (subscore)": [],
+  "Number of Medications (n)": [],
+  "Multimorbidity (score)": [],
+  "Clinical Frailty Scale (score)": [],
+  "MoCA Verbal Fluency (subscore)": [],
+  "Dementia (Yes/No)": [],
+  "Recent Fall (Yes/No)": [],
+  "Post-OP Isolation (Yes/No)": [],
+  "Pre-OP Benzodiazepines (Yes/No)": [],
+  "Cardio-Pulmonary Bypass (Yes/No)": []
+}
+
