@@ -16,77 +16,90 @@ def load_variable_mapping():
         dict: The contents of VARIABLE_MAPPING.json.
     """
     json_path = Path(__file__).parent / 'VARIABLE_MAPPING.json'
-    with open(json_path, 'r') as f:
+    with json_path.open('r') as f:
         return load(f)
 
 
-def safe_get(sample, key, sentinel=-1, cast=int):
+def safe_get(sample, key, sentinel=None, cast=int):
     """
     Helper function to safely get and cast a value from a dict.
 
-    Returns the sentinel if the key is missing, value is None, or cast fails.
+    Returns the sentinel if the key is missing, value is null-like, or cast fails.
+    Also handles 'True'/'False' strings safely.
     """
     val = sample.get(key, sentinel)
+    
     if val in NULL:
         return sentinel
+
+    val_str = str(val).strip().lower()
+    if val_str == "true":
+        return True
+    if val_str == "false":
+        return False
+
     try:
         return cast(val)
     except (ValueError, TypeError):
         return sentinel
 
     
-def count_true_values(arr_str):
+def count_true_values(sample, prefix):
     """
-    Counts the number of 'True' string values in a comma-separated string.
-    
-    If the input is None, returns None.
-    """
-    if arr_str in NULL:
-        return None
-    else:
-        return sum(x == "True" for x in arr_str.split(','))
-
-
-def resolve_conflicts(arr1_str, arr2_str):
-    """
-    Resolves conflicts between two comma-separated 'True'/'False' strings.
-    If both have 'True' at the same index, arr2's value is set to 'False' at that index.
+    Counts the number of True values for keys with a given prefix and fixed suffixes 1–5.
 
     Args:
-        arr1_str (str): First boolean array as a comma-separated string.
-        arr2_str (str): Second boolean array as a comma-separated string.
+        sample (dict): Dictionary containing patient data.
+        prefix (str): e.g., 'preop_moca_4'
 
     Returns:
-        str: Modified arr2 string with conflicts resolved.
+        int: Number of True values.
     """
-    arr1 = arr1_str.split(',')
-    arr2 = arr2_str.split(',')
+    return sum(bool(safe_get(sample, f"{prefix}_{i}")) for i in range(1, 6))
 
-    resolved_arr2 = [
-        "False" if a1 == "True" and a2 == "True" else a2
-        for a1, a2 in zip(arr1, arr2)
-    ]
 
-    return ','.join(resolved_arr2)
+def resolve_conflicts(sample):
+    """
+    Resolves conflicts between preop_moca_4_* and preop_moca_5_* fields in-place.
+    If both values are equal (True), sets preop_moca_5_* to False.
+
+    Args:
+        sample (dict): Dictionary containing patient data.
+
+    Returns:
+        None
+    """
+    for i in range(1, 6):
+        if safe_get(sample, f'preop_moca_4_{i}') == safe_get(sample, f'preop_moca_5_{i}'):
+            sample[f'preop_moca_5_{i}'] = False
+
+    return None
 
 
 def get_moca_memory(sample):
     """
-    Computes MoCA memory score from 'moca_preop_4' and 'moca_preop_5'.
-    Returns None if both inputs are None.
+    Computes the MoCA memory score from preop_moca_4_* and preop_moca_5_* fields.
+
+    Returns None if all relevant fields are null-like.
 
     Args:
-        sample (dict): Contains 'moca_preop_4' and 'moca_preop_5' as comma-separated 'True'/'False' strings or None.
+        sample (dict): Dictionary containing patient data.
 
     Returns:
-        int or None: MoCA memory score or None if no data.
+        int or None: MoCA memory score.
     """
-    if sample['moca_preop_4'] in NULL and sample['moca_preop_5'] in NULL:
+    if all(sample.get(f"preop_moca_4_{i}") in NULL for i in range(1, 6)) and \
+       all(sample.get(f"preop_moca_5_{i}") in NULL for i in range(1, 6)):
         return None
-    else:
-        resolved = resolve_conflicts(sample['moca_preop_4'], sample['moca_preop_5'])
-        moca_memory =  2 * count_true_values(sample['moca_preop_4']) + count_true_values(resolved)
-        return moca_memory
+
+    resolve_conflicts(sample)
+
+    score = (
+        2 * count_true_values(sample, "preop_moca_4") +
+        count_true_values(sample, "preop_moca_5")
+    )
+
+    return score
 
 
 def get_number_of_medications(sample):
@@ -97,10 +110,10 @@ def get_number_of_medications(sample):
     returns the number of non-None fields. Returns None if all are None.
     """
     count = sum(
-        sample[f'medication_preop_{i}'] not in NULL
+        sample[f'medication_preop_{i}'] not in NULL.union({False, 0})
         for i in range(1, 21)
     )
-    return count if count > 0 else None # Returns 0 if no medications are recoreded, which is likey incomplete data
+    return count if count > 0 else None # Returns None if no medications are recoreded, which is likey incomplete data
 
 
 def get_cci(sample):
@@ -108,8 +121,7 @@ def get_cci(sample):
     Calculates the Charlson Comorbidity Index (CCI) for a single patient sample.
 
     Parameters:
-        sample (dict): A dictionary containing the required comorbidity fields,
-            including 'dementia' and 'comorbidity_1_*' keys.
+        sample (dict): A dictionary containing the required 'comorbidity_1_*' fields.
 
     Returns:
         int: The computed CCI score based on comorbidity indicators.
@@ -119,9 +131,9 @@ def get_cci(sample):
         safe_get(sample, 'comorbidity_1_mi4w') == 1 or
         safe_get(sample, 'comorbidity_1_mi1m') == 1
     )
-    chf = safe_get(sample, 'comorbidity_1_myocard') > 1
+    chf = safe_get(sample, 'comorbidity_1_myocard', sentinel=-1) > 1
     pvd = safe_get(sample, 'comorbidity_1_vasc_avk') == 1
-    cvd = safe_get(sample, 'comorbidity_1_apoplextia') >= 0
+    cvd = safe_get(sample, 'comorbidity_1_apoplextia', sentinel=-1) >= 0
     dementia = get_dementia(sample) == 1
     cpd = (
         safe_get(sample, 'comorbidity_1_asthma') == 1 or
@@ -130,9 +142,9 @@ def get_cci(sample):
     )
     ld = safe_get(sample, 'comorbidity_1_liver') == 2
     ld_s = safe_get(sample, 'comorbidity_1_liver') == 4
-    dm = safe_get(sample, 'comorbidity_1_diabetes') > 1
+    dm = safe_get(sample, 'comorbidity_1_diabetes', sentinel=-1) > 1
     dm_c = safe_get(sample, 'comorbidity_1_diab_cons') == 1
-    rd = safe_get(sample, 'comorbidity_1_kidney') > 1
+    rd = safe_get(sample, 'comorbidity_1_kidney', sentinel=-1) > 1
 
     cci_score = (
         int(mi) +
@@ -190,7 +202,7 @@ def get_isolation(sample):
         value or None: Value of the most recent isolation key found, or None if none exist.
     """
     for key in ('isolation_postop_3', 'isolation_postop_1', 'isolation_preop'):
-        if key in sample and sample[key] not in NULL:
+        if key in sample and safe_get(sample, key) not in NULL:
             return sample[key]
     return None
 
@@ -213,7 +225,7 @@ def get_benzodiazepine(sample):
     ]
 
     # If no medication is documented, likely incomplete data
-    if sample.get('medication_preop_1') in NULL:
+    if sample.get('medication_preop_1') in NULL.union({False, 0}):
         return None
 
     for i in range(1, 21):
@@ -246,9 +258,9 @@ def get_features(sample):
         'get_dementia': get_dementia,
         'get_isolation': get_isolation,
         'get_benzodiazepine': get_benzodiazepine,
-        'get_age': lambda sample: sample['adm_age'] * 12 if sample['adm_age'] not in NULL else None,
-        'get_moca_orientation': lambda sample: count_true_values(sample['moca_preop_3']),
-        'get_moca_verbal_fluency': lambda sample: safe_get(sample, 'moca_preop_2')/2 if sample['moca_preop_2'] not in NULL else None,
+        'get_age': lambda s: v * 12 if (v := safe_get(s, 'adm_age_coc', cast=float)) else None,
+        'get_moca_orientation': lambda s: v.split(',').count("True") if (v := safe_get(s, 'moca_preop_3', cast=str)) else None,
+        'get_moca_verbal_fluency': lambda s: v / 2 if (v := safe_get(s, 'moca_preop_2')) is not None else None,
     }
 
     for key, value in variable_mapping.items():
@@ -256,12 +268,12 @@ def get_features(sample):
             if value in feature_functions:
                 sample[key] = feature_functions[value](sample)
             else:
-                sample[key] = sample.get(value)
+                sample[key] = safe_get(sample, value, cast=float)
         elif isinstance(value, dict):
             # Mapping required
             for variable, mapping in value.items():
-                raw_val = sample.get(variable, "99")
-                sample[key] = mapping.get(str(int(raw_val)))
+                raw_val = safe_get(sample, variable, sentinel=99)
+                sample[key] = mapping.get(str(raw_val))
         else:
             continue
 

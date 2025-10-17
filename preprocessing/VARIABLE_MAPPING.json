@@ -16,7 +16,7 @@
     "MoCA Memory (subscore)": "get_moca_memory",
     "Number of Medications (n)": "get_number_of_medications",
     "Multimorbidity (score)": "get_cci",
-    "Clinical Frailty Scale (score)": "cfs_prior",
+    "Clinical Frailty Scale (score)": "frailty_score",
     "MoCA Verbal Fluency (subscore)": "get_moca_verbal_fluency",
     "Dementia (Yes/No)": "get_dementia",
     "Recent Fall (Yes/No)": {
