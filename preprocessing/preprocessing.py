@@ -140,8 +140,8 @@ def get_cci(sample):
         safe_get(sample, 'comorbidity_1_copd') == 1 or
         safe_get(sample, 'comorbidity_1_res') == 1
     )
-    ld = safe_get(sample, 'comorbidity_1_liver') == 2
-    ld_s = safe_get(sample, 'comorbidity_1_liver') == 4
+    ld = safe_get(sample, 'comorbidity_1_liver', sentinel=-1) > 1
+    ld_s = safe_get(sample, 'comorbidity_1_liver') == 5
     dm = safe_get(sample, 'comorbidity_1_diabetes', sentinel=-1) > 1
     dm_c = safe_get(sample, 'comorbidity_1_diab_cons') == 1
     rd = safe_get(sample, 'comorbidity_1_kidney', sentinel=-1) > 1
@@ -154,7 +154,7 @@ def get_cci(sample):
         int(dementia) +
         int(cpd) +
         int(ld) +
-        3 * int(ld_s) +
+        2 * int(ld_s) +
         int(dm) +
         int(dm_c) +
         2 * int(rd)
@@ -180,7 +180,7 @@ def get_dementia(sample):
     anesthetist = safe_get(sample, 'comorbidity_1_dementia')
     anamnesis = safe_get(sample, 'comorbidity_2_dementia')
 
-    if anesthetist == 1 or anamnesis in [1, 2]:
+    if anesthetist == 1 or anamnesis in {1, 2}:
         return 1
     elif anesthetist == 0 or anamnesis == 0:
         return 0
@@ -258,7 +258,7 @@ def get_features(sample):
         'get_dementia': get_dementia,
         'get_isolation': get_isolation,
         'get_benzodiazepine': get_benzodiazepine,
-        'get_age': lambda s: v * 12 if (v := safe_get(s, 'adm_age_coc', cast=float)) else None,
+        'get_age': lambda s: v * 12 if (v := safe_get(s, 'alter', cast=float)) else None,
         'get_moca_orientation': lambda s: v.split(',').count("True") if (v := safe_get(s, 'moca_preop_3', cast=str)) else None,
         'get_moca_verbal_fluency': lambda s: v / 2 if (v := safe_get(s, 'moca_preop_2')) is not None else None,
     }
