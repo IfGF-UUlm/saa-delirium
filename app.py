@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # Calculate probability
     pod_predictor = PODPredictor()
-    delir_proba = {'delir_proba': pod_predictor.predict_proba(sample)[0, 0].item()}
+    delir_proba = {'delir_proba': pod_predictor.predict_proba(sample)[0, 1].item()}
 
     # Export to JSON
     with open('delir_proba.json', 'w') as f:

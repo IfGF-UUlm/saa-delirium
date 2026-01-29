@@ -10,7 +10,7 @@ NULL = {None, 'NaN', '', ' '}
 
 def load_variable_mapping():
     """
-    Loads VARIABLE_MAPPING.json from the same directory as utils.py.
+    Loads VARIABLE_MAPPING.json from the same directory as preprocessing.py.
 
     Returns:
         dict: The contents of VARIABLE_MAPPING.json.
