@@ -44,62 +44,40 @@ def safe_get(sample, key, sentinel=None, cast=int):
         return sentinel
 
     
-def count_true_values(sample, prefix):
+def get_moca_orientation(sample):
     """
-    Counts the number of True values for keys with a given prefix and fixed suffixes 1–5.
+    Counts the number of True values for MoCA orientation items (preop_moca_3_1 to preop_moca_3_6).
 
-    Args:
-        sample (dict): Dictionary containing patient data.
-        prefix (str): e.g., 'preop_moca_4'
-
-    Returns:
-        int: Number of True values.
-    """
-    return sum(bool(safe_get(sample, f"{prefix}_{i}")) for i in range(1, 6))
-
-
-def resolve_conflicts(sample):
-    """
-    Resolves conflicts between preop_moca_4_* and preop_moca_5_* fields in-place.
-    If both values are equal (True), sets preop_moca_5_* to False.
+    If all items are null-like, returns None.
 
     Args:
         sample (dict): Dictionary containing patient data.
 
     Returns:
-        None
+        int or None: Number of True values (0–6), or None if all are missing/null.
     """
-    for i in range(1, 6):
-        if safe_get(sample, f'preop_moca_4_{i}') == safe_get(sample, f'preop_moca_5_{i}'):
-            sample[f'preop_moca_5_{i}'] = False
-
-    return None
+    values = [safe_get(sample, f"preop_moca_3_{i}") for i in range(1, 7)]
+    if all(v in NULL for v in values):
+        return None
+    return sum(bool(v) for v in values)
 
 
 def get_moca_memory(sample):
     """
-    Computes the MoCA memory score from preop_moca_4_* and preop_moca_5_* fields.
+    Counts the number of True values for MoCA memory items (preop_moca_4_1 to preop_moca_4_5).
 
-    Returns None if all relevant fields are null-like.
+    If all items are null-like, returns None.
 
     Args:
         sample (dict): Dictionary containing patient data.
 
     Returns:
-        int or None: MoCA memory score.
+        int or None: Number of True values (0–5), or None if all are missing/null.
     """
-    if all(sample.get(f"preop_moca_4_{i}") in NULL for i in range(1, 6)) and \
-       all(sample.get(f"preop_moca_5_{i}") in NULL for i in range(1, 6)):
+    values = [safe_get(sample, f"preop_moca_4_{i}") for i in range(1, 6)]
+    if all(v in NULL for v in values):
         return None
-
-    resolve_conflicts(sample)
-
-    score = (
-        2 * count_true_values(sample, "preop_moca_4") +
-        count_true_values(sample, "preop_moca_5")
-    )
-
-    return score
+    return sum(bool(v) for v in values)
 
 
 def get_number_of_medications(sample):
@@ -252,6 +230,7 @@ def get_features(sample):
 
     variable_mapping = load_variable_mapping()
     feature_functions = {
+        'get_moca_orientation': get_moca_orientation,
         'get_moca_memory': get_moca_memory,
         'get_number_of_medications': get_number_of_medications,
         'get_cci': get_cci,
@@ -259,8 +238,7 @@ def get_features(sample):
         'get_isolation': get_isolation,
         'get_benzodiazepine': get_benzodiazepine,
         'get_age': lambda s: v * 12 if (v := safe_get(s, 'alter', cast=float)) else None,
-        'get_moca_orientation': lambda s: v.split(',').count("True") if (v := safe_get(s, 'moca_preop_3', cast=str)) else None,
-        'get_moca_verbal_fluency': lambda s: v / 2 if (v := safe_get(s, 'moca_preop_2')) is not None else None,
+        'get_moca_verbal_fluency': lambda s: int(v >= 11) if (v := safe_get(s, 'preop_moca_2')) is not None else None,
     }
 
     for key, value in variable_mapping.items():

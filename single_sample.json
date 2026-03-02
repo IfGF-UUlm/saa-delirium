@@ -409,5 +409,19 @@
     "comorbidity_1_neuro_epi": 1,
     "catheter_prior": 1,
     "lab_preop_egfr": 79,
-    "egfr_latest": 79
+    "egfr_latest": 79,
+    "preop_moca_2": 14,
+    "preop_moca_3_1": 1,
+    "preop_moca_3_2": 1,
+    "preop_moca_3_3": 1,
+    "preop_moca_3_4": 1,
+    "preop_moca_3_5": 1,
+    "preop_moca_4_1": 2,
+    "preop_moca_4_2": 0,
+    "preop_moca_4_3": 2,
+    "preop_moca_4_4": null,
+    "preop_moca_4_5": 2,
+    "preop_moca_4_6": 2,
+    "alter": 79,
+    "frailty_score": 3
 }
